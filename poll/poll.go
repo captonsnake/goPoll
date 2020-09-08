@@ -124,6 +124,32 @@ func (p *Poll) Save() {
 	}
 }
 
+// Sets all users to No Response option initially
+func (p *Poll) setDefualt(defualtIDX int) {
+    api := slack.New("TOKEN")
+    params := GetUsersInConversationParameters{
+        ChannelId: "CHANNELID",
+    }
+
+    log.Println("[INFO] Getting members of channel")
+    members, _, err := api.GetUsersInConversation(&params)
+
+    if err != nil {
+        log.Println("[ERROR] Unable to get members of channel")
+        return
+    }
+    log.Printf("[INFO] Users: %v", members)
+    
+    for i, member := range members {
+        //convert member to userID?
+        user, err := api.GetUserInfo(member)
+        if err != nil {
+            log.Printf("[ERROR] Unable to get ID: %v", member)
+        } else {
+            ToggleVote(user.Name, defualtIDX)
+        }
+}
+
 // ToggleVote inverts the voting status for the given user on a given option.
 func (p *Poll) ToggleVote(user string, optionIndex int) {
 	log.Println("[INFO] toggleVote:", user, optionIndex)
