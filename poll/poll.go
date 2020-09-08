@@ -78,11 +78,13 @@ func CreatePoll(owner, title string, options []string) *Poll {
 		ID:      strconv.Itoa(id),
 		Owner:   owner,
 		Title:   title,
-		Options: make([]Option, len(options)),
+		Options: make([]Option, len(options) + 1),
 	}
 	for i, name := range options {
 		poll.Options[i].Name = name
 	}
+    // Adds a Default no response catagory to vote on
+    poll.Options[len(options)] = "No Response"
 	log.Println("[INFO] CreatePoll:", poll)
 	return &poll
 }
@@ -172,7 +174,8 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 		} else {
 			votersStr = ""
 			for _, userID := range option.Voters {
-				votersStr += fmt.Sprintf("<@%v> ", userID)
+                // Pads names to 32
+				votersStr += fmt.Sprintf("<@%32v> ", userID)
 			}
 		}
 
