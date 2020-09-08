@@ -54,6 +54,7 @@ func (h commandHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     // Create the poll.
     p := poll.CreatePoll(cmd.UserID, args[0], args[1:])
+    p.SetDefault()
     p.Save()
 
     params := &slack.Msg{

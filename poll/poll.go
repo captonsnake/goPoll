@@ -84,7 +84,7 @@ func CreatePoll(owner, title string, options []string) *Poll {
 		poll.Options[i].Name = name
 	}
     // Adds a Default no response catagory to vote on
-    poll.Options[len(options)] = "No Response"
+    poll.Options[len(options)].Name = "No Response"
 	log.Println("[INFO] CreatePoll:", poll)
 	return &poll
 }
@@ -125,10 +125,10 @@ func (p *Poll) Save() {
 }
 
 // Sets all users to No Response option initially
-func (p *Poll) setDefualt(defualtIDX int) {
-    api := slack.New("TOKEN")
-    params := GetUsersInConversationParameters{
-        ChannelId: "CHANNELID",
+func (p *Poll) SetDefault() {
+    api := slack.New("xoxb-220025779893-1078147596145-wjJ9XMVJNaBCR701CxApWk5m")
+    params := slack.GetUsersInConversationParameters{
+        ChannelID: "C0108K46K8Q",
     }
 
     log.Println("[INFO] Getting members of channel")
@@ -139,15 +139,19 @@ func (p *Poll) setDefualt(defualtIDX int) {
         return
     }
     log.Printf("[INFO] Users: %v", members)
-    
-    for i, member := range members {
+
+    for _, member := range members {
         //convert member to userID?
         user, err := api.GetUserInfo(member)
         if err != nil {
             log.Printf("[ERROR] Unable to get ID: %v", member)
         } else {
-            ToggleVote(user.Name, defualtIDX)
+		option := &p.Options[len(p.Options) - 1]
+		option.mux.Lock()
+		defer option.mux.Unlock()
+		option.Voters = append(option.Voters, user.Name)
         }
+	}
 }
 
 // ToggleVote inverts the voting status for the given user on a given option.
@@ -201,7 +205,7 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 			votersStr = ""
 			for _, userID := range option.Voters {
                 // Pads names to 32
-				votersStr += fmt.Sprintf("<@%32v> ", userID)
+				votersStr += fmt.Sprintf("<@%v> ", userID)
 			}
 		}
 
