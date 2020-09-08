@@ -1,0 +1,4 @@
+dependencies:
+  - name: redis
+    version: 5.5.0  # Uses Redis 4.0.12 by default
+    repository: "https://kubernetes-charts.storage.googleapis.com"

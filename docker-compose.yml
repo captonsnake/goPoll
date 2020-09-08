@@ -1,0 +1,17 @@
+version: '2'
+services:
+  app:
+    build: .
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - SLACK_VERIFICATION_TOKEN
+    ports:
+      - "4000:4000"
+  redis:
+    image: redis:4.0-alpine
+    volumes:
+      - redis_data:/data
+volumes:
+  redis_data:
