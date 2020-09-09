@@ -136,6 +136,7 @@ func (p *Poll) SetDefault() {
 
     if err != nil {
         log.Println("[ERROR] Unable to get members of channel")
+	log.Printf("[ERROR] Error code: %v", err)
         return
     }
     log.Printf("[INFO] Users: %v", members)
@@ -192,10 +193,12 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 	for i := range p.Options {
 		option := &p.Options[i]
 
-		actions[i] = slack.AttachmentAction{
-			Name: prefix + strconv.Itoa(i),
-			Text: option.Name,
-			Type: "button",
+		if (option.Name != "No Response") {
+			actions[i] = slack.AttachmentAction{
+				Name: prefix + strconv.Itoa(i),
+				Text: option.Name,
+				Type: "button",
+			}
 		}
 
 		var votersStr string
@@ -205,7 +208,8 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 			votersStr = ""
 			for _, userID := range option.Voters {
                 // Pads names to 32
-				votersStr += fmt.Sprintf("<@%v> ", userID)
+				tmp := fmt.Sprintf("<@%v> ", userID)
+				votersStr += fmt.Sprintf("%-32v ", tmp)
 			}
 		}
 
