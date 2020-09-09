@@ -128,8 +128,8 @@ func (p *Poll) Save() {
 func (p *Poll) SetDefault() []string {
     api := slack.New("xoxb-220025779893-1078147596145-wjJ9XMVJNaBCR701CxApWk5m")
     params := slack.GetUsersInConversationParameters{
-        ChannelID: "C011XHVB3S6",
-        //ChannelID: "C0108K46K8Q",
+        //ChannelID: "C011XHVB3S6",
+        ChannelID: "C0108K46K8Q",
     }
 
     log.Println("[INFO] Getting members of channel")
@@ -149,6 +149,34 @@ func (p *Poll) SetDefault() []string {
 func (p *Poll) ToggleVote(user string, optionIndex int) {
 	log.Println("[INFO] toggleVote:", user, optionIndex)
 
+	if optionIndex == (len(p.Options) - 1) {
+		for i := range p.Options {
+			for j := range p.Options[i].Voters {
+				if user == p.Options[i].Voters[j] {
+					return
+				}
+			}
+		}
+	}
+
+	for i := range p.Options {
+		option := &p.Options[i]
+		option.mux.Lock()
+		for i, voter := range option.Voters {
+			if voter == user {
+				// Remove voter from the list.
+				option.Voters = append(option.Voters[:i], option.Voters[i+1:]...)
+			}
+
+		}
+		option.mux.Unlock()
+
+	}
+
+	p.Options[optionIndex].mux.Lock()
+	p.Options[optionIndex].Voters = append(p.Options[optionIndex].Voters, user)
+	p.Options[optionIndex].mux.Unlock()
+	/*
 	option := &p.Options[optionIndex]
 	option.mux.Lock()
 	defer option.mux.Unlock()
@@ -171,6 +199,7 @@ func (p *Poll) ToggleVote(user string, optionIndex int) {
 		}
 	}
 	option.Voters = append(option.Voters, user)
+	*/
 }
 
 // ToSlackAttachment renders a Poll into a Slack message Attachment.
@@ -206,8 +235,8 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 			votersStr = ""
 			for _, userID := range option.Voters {
 				// Pads names to 32
-				tmp := fmt.Sprintf("<@%v> ", userID)
-				votersStr += fmt.Sprintf("%-32v ", tmp)
+				votersStr += fmt.Sprintf(" <@%v> |", userID)
+				//votersStr += fmt.Sprintf("%v ", tmp)
 			}
 		}
 
@@ -219,7 +248,8 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 	}
 
 	// Append "Delete Poll" action.
-	actions[numOptions - 1] = slack.AttachmentAction{
+	/*
+	actions[numOptions] = slack.AttachmentAction{
 		Name:  prefix + "delete",
 		Text:  "Delete Poll",
 		Type:  "button",
@@ -230,6 +260,7 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 			DismissText: "Keep Poll",
 		},
 	}
+	*/
 
 	actions[numOptions] = slack.AttachmentAction{
 		Name:  prefix + "fill",
@@ -238,6 +269,7 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 		Style: "danger",
 	}
 
+	log.Printf("[DEBUG] %v %v", fields, actions)
 	return &slack.Attachment{
 		Title:      "Poll: " + p.Title,
 		Fallback:   "Please use a client that supports interactive messages to see this poll.",
