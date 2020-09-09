@@ -149,22 +149,28 @@ func (p *Poll) SetDefault() []string {
 func (p *Poll) ToggleVote(user string, optionIndex int) {
 	log.Println("[INFO] toggleVote:", user, optionIndex)
 
-	voterOption := &p.Options[optionIndex]
+	option := &p.Options[optionIndex]
+	option.mux.Lock()
+	defer option.mux.Unlock()
 
-	for _, option := range p.Options {
-		option.mux.Lock()
-		for i, voter := range option.Voters {
-			if voter == user {
-				// Remove voter from the list.
-				option.Voters = append(option.Voters[:i], option.Voters[i+1:]...)
-			}
-		option.mux.Unlock()
+	for i, voter := range option.Voters {
+		if voter == user {
+			// Remove voter from the list.
+			option.Voters = append(option.Voters[:i], option.Voters[i+1:]...)
+			return
 		}
 
 	}
-	voterOption.mux.Lock()
-	voterOption.Voters = append(voterOption.Voters, user)
-	voterOption.mux.Unlock()
+	if optionIndex == (len(p.Options) - 1) {
+		for i := range p.Options {
+			for j := range p.Options[i].Voters {
+				if user == p.Options[i].Voters[j] {
+					return
+				}
+			}
+		}
+	}
+	option.Voters = append(option.Voters, user)
 }
 
 // ToSlackAttachment renders a Poll into a Slack message Attachment.
@@ -199,7 +205,7 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 		} else {
 			votersStr = ""
 			for _, userID := range option.Voters {
-                // Pads names to 32
+				// Pads names to 32
 				tmp := fmt.Sprintf("<@%v> ", userID)
 				votersStr += fmt.Sprintf("%-32v ", tmp)
 			}
