@@ -34,7 +34,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	log.Println("[INFO] Server listening on port 3000")
+	log.Println("[INFO] Server listening on port 4000")
 	http.ListenAndServe(":4000", nil)
 }
 

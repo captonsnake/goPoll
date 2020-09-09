@@ -70,6 +70,23 @@ func (h interactionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+	case "fill":
+		if message.User.ID == p.Owner {
+			    members := p.SetDefault()
+			    if members != nil {
+				    for _, member := range members {
+					p.ToggleVote(member, (len(p.Options) - 1))
+				    }
+			    }
+			    p.Save()
+		} else {
+			response = &slack.Msg{
+				ResponseType:    "ephemeral",
+				ReplaceOriginal: false,
+				Text:            "Sorry, only <@" + p.Owner + "> can delete this poll.",
+			}
+		}
+
 	default:
 		optionIndex, err := strconv.Atoi(parts[1])
 		if err != nil {

@@ -125,10 +125,11 @@ func (p *Poll) Save() {
 }
 
 // Sets all users to No Response option initially
-func (p *Poll) SetDefault() {
+func (p *Poll) SetDefault() []string {
     api := slack.New("xoxb-220025779893-1078147596145-wjJ9XMVJNaBCR701CxApWk5m")
     params := slack.GetUsersInConversationParameters{
-        ChannelID: "C0108K46K8Q",
+        ChannelID: "C011XHVB3S6",
+        //ChannelID: "C0108K46K8Q",
     }
 
     log.Println("[INFO] Getting members of channel")
@@ -137,42 +138,33 @@ func (p *Poll) SetDefault() {
     if err != nil {
         log.Println("[ERROR] Unable to get members of channel")
 	log.Printf("[ERROR] Error code: %v", err)
-        return
+        return nil
     }
     log.Printf("[INFO] Users: %v", members)
+    return members
 
-    for _, member := range members {
-        //convert member to userID?
-        user, err := api.GetUserInfo(member)
-        if err != nil {
-            log.Printf("[ERROR] Unable to get ID: %v", member)
-        } else {
-		option := &p.Options[len(p.Options) - 1]
-		option.mux.Lock()
-		defer option.mux.Unlock()
-		option.Voters = append(option.Voters, user.Name)
-        }
-	}
 }
 
 // ToggleVote inverts the voting status for the given user on a given option.
 func (p *Poll) ToggleVote(user string, optionIndex int) {
 	log.Println("[INFO] toggleVote:", user, optionIndex)
 
-	option := &p.Options[optionIndex]
+	voterOption := &p.Options[optionIndex]
 
-	option.mux.Lock()
-	defer option.mux.Unlock()
-	for i, voter := range option.Voters {
-		if voter == user {
-			// Remove voter from the list.
-			option.Voters = append(option.Voters[:i], option.Voters[i+1:]...)
-			return
+	for _, option := range p.Options {
+		option.mux.Lock()
+		for i, voter := range option.Voters {
+			if voter == user {
+				// Remove voter from the list.
+				option.Voters = append(option.Voters[:i], option.Voters[i+1:]...)
+			}
+		option.mux.Unlock()
 		}
-	}
 
-	// User wasn't found in the list of voters, so append it.
-	option.Voters = append(option.Voters, user)
+	}
+	voterOption.mux.Lock()
+	voterOption.Voters = append(voterOption.Voters, user)
+	voterOption.mux.Unlock()
 }
 
 // ToSlackAttachment renders a Poll into a Slack message Attachment.
@@ -186,7 +178,7 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 	}
 
 	numOptions := len(p.Options)
-	actions := make([]slack.AttachmentAction, numOptions+1)
+	actions := make([]slack.AttachmentAction, numOptions + 1)
 	fields := make([]slack.AttachmentField, numOptions)
 
 	prefix := p.ID + "_"
@@ -221,7 +213,7 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 	}
 
 	// Append "Delete Poll" action.
-	actions[numOptions] = slack.AttachmentAction{
+	actions[numOptions - 1] = slack.AttachmentAction{
 		Name:  prefix + "delete",
 		Text:  "Delete Poll",
 		Type:  "button",
@@ -231,6 +223,13 @@ func (p *Poll) ToSlackAttachment() *slack.Attachment {
 			OkText:      "Delete Poll",
 			DismissText: "Keep Poll",
 		},
+	}
+
+	actions[numOptions] = slack.AttachmentAction{
+		Name:  prefix + "fill",
+		Text:  "Fill No Response",
+		Type:  "button",
+		Style: "danger",
 	}
 
 	return &slack.Attachment{
