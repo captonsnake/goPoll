@@ -83,7 +83,7 @@ func (h interactionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			response = &slack.Msg{
 				ResponseType:    "ephemeral",
 				ReplaceOriginal: false,
-				Text:            "Sorry, only <@" + p.Owner + "> can delete this poll.",
+				Text:            "Sorry, only <@" + p.Owner + "> can fill No response.",
 			}
 		}
 
